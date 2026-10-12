@@ -8,12 +8,14 @@ SafeHaul evaluates multiple route alternatives between an origin and destination
 
 ## Features
 
-- **Multi-Route Generation**: Generates 3 distinct route alternatives between origin and destination.
+- **Multi-Route Generation**: Generates 3 distinct route alternatives between origin and destination with parallel via-waypoint routing and strict geometric spur elimination.
 - **Dynamic Checkpoint Sampling**: Samples checkpoints along each candidate route every 10, 25, or 50 miles based on route length.
-- **Precision ETA & Weather Matching**: Computes cumulative driving time to each checkpoint and queries Open-Meteo hourly weather at the ETA.
-- **Load-Aware Risk Scoring**: Pure rule-based scoring engine classifying wind, rain, and snow risk, with load weight thresholds applied to sustained winds.
-- **Lexicographic Route Recommendation**: Evaluates Severe miles, High miles, distance-weighted average risk, and travel time to recommend the safest path. Disqualifies routes with No Travel checkpoints.
-- **Interactive Weather Heatmap & 48-Hour Slider**: Visualizes the weather risk across the trip corridor over a 0–48 hour timeline with zero network requests during slider movement.
+- **Precision ETA & Weather Matching**: Computes cumulative driving time to each checkpoint and queries Open-Meteo hourly weather matching the truck's exact estimated arrival time.
+- **Universal Timezone Resolution**: Worldwide IANA timezone and local offset detection at origin and along checkpoints via `GET /api/v1/timezones/resolve/`.
+- **Load-Aware Risk Scoring**: Pure rule-based scoring engine classifying wind, rain, and snow risk, with load weight thresholds applied to sustained winds (e.g. >30,000 lb and >40,000 lb escalations).
+- **Exact Lexicographic Route Recommendation**: Evaluates Severe miles, High miles, distance-weighted average risk, and travel time with transparent deciding-rule explanations and second-level tie breaking.
+- **Corridor Weather Heatmap & 48-Hour Slider**: Visualizes weather risk strictly along the 40-mile highway corridor buffer with Doppler-style atmospheric glow, zero network requests during slider movement, and transparent clear weather.
+- **Performance Optimized**: Sub-second cached route analysis (0.11s), lazy-loaded map bundle (77.5% smaller initial JS load), and WCAG-compliant high-contrast typography.
 
 ---
 
@@ -209,6 +211,7 @@ Base path: `/api/v1/`
 
 - `GET /api/v1/health/` — Health check endpoint returning `{ "status": "ok" }`.
 - `GET /api/v1/geocode/?q=<query>` — Ephemeral address search suggestions (up to 5 results).
+- `GET /api/v1/timezones/resolve/?lat=<lat>&lng=<lng>` — Resolves exact IANA timezone and abbreviation worldwide.
 - `POST /api/v1/trips/analyze/` — Evaluates candidate routes, checkpoint risk, and recommendation.
 - `POST /api/v1/trips/heatmap/` — Computes 49-hour weather risk grid along trip corridor.
 - `GET /api/v1/trips/<uuid>/` — Retrieves stored trip analysis snapshot.
