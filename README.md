@@ -2,7 +2,12 @@
 
 SafeHaul evaluates multiple route alternatives between an origin and destination, samples checkpoints at regular intervals, fetches weather forecasts matching the truck's estimated arrival time (ETA), and scores weather risk against vehicle load weight to recommend the safest route.
 
-![SafeHaul UI Screenshot](docs/screenshot.png)
+---
+
+### 🌐 Live Deployment
+- **Frontend Web App (Vercel)**: [https://weather-aware-truck-routing-sandy.vercel.app/](https://weather-aware-truck-routing-sandy.vercel.app/)
+- **Backend REST API (Render)**: [https://safehaul-backend1.onrender.com](https://safehaul-backend1.onrender.com)
+  - API Health Check: [https://safehaul-backend1.onrender.com/api/v1/health/](https://safehaul-backend1.onrender.com/api/v1/health/)
 
 ---
 
@@ -84,7 +89,7 @@ SafeHaul evaluates multiple route alternatives between an origin and destination
 | **Domain Logic** | Pure Python modules (`risk.py`, `eta.py`, `rank.py`) | Checkpoint sampling, risk rules, route ranking |
 | **Caching** | Redis (Upstash) with `LocMemCache` fallback | Short-term cache for weather and corridor grids |
 | **External APIs** | Mapbox Directions & Geocoding, Open-Meteo | Routing geometries, autocomplete, weather forecasts |
-| **Container & Cloud** | Docker, Google Cloud Run, Firebase Hosting | Production deployment and local containerization |
+| **Container & Cloud** | Docker, Render (Backend API), Vercel (Frontend SPA) | Production deployment and local containerization |
 
 ---
 
