@@ -1,0 +1,23 @@
+target-version = "py312"
+line-length = 120
+
+exclude = [
+    ".git",
+    ".pytest_cache",
+    ".ruff_cache",
+    "venv",
+    "**/migrations/*",
+    "staticfiles",
+    "scratch_*.py",
+]
+
+[lint]
+select = ["E", "F", "I", "UP", "B", "W", "RUF"]
+ignore = [
+    "E501",   # line length
+    "RUF012", # mutable class attributes (standard in Django/DRF)
+    "RUF059", # unpacked variable
+]
+
+[lint.per-file-ignores]
+"config/settings/*" = ["F403", "F405"]
