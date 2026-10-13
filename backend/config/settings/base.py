@@ -10,13 +10,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 env = environ.Env(
     DEBUG=(bool, False),
-    ALLOWED_HOSTS=(list, ["localhost", "127.0.0.1"]),
+    ALLOWED_HOSTS=(list, ["localhost", "127.0.0.1", "*", ".onrender.com"]),
     SECRET_KEY=(str, "django-insecure-default-change-in-production"),
     DATABASE_URL=(str, f"sqlite:///{BASE_DIR / 'db.sqlite3'}"),
     REDIS_URL=(str, ""),
     MAPBOX_ACCESS_TOKEN=(str, ""),
     ENABLE_ROUTE_CACHE=(bool, False),
-    CORS_ALLOWED_ORIGINS=(list, ["http://localhost:5173", "http://127.0.0.1:5173"]),
+    CORS_ALLOW_ALL_ORIGINS=(bool, True),
+    CORS_ALLOWED_ORIGINS=(list, [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "https://weather-aware-truck-routing-sandy.vercel.app",
+    ]),
 )
 
 # Read .env file from project root if it exists
@@ -130,7 +135,15 @@ REST_FRAMEWORK = {
 }
 
 # CORS Configuration
-CORS_ALLOWED_ORIGINS = env("CORS_ALLOWED_ORIGINS")
+CORS_ALLOW_ALL_ORIGINS = env.bool("CORS_ALLOW_ALL_ORIGINS", default=True)
+CORS_ALLOWED_ORIGINS = env.list(
+    "CORS_ALLOWED_ORIGINS",
+    default=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "https://weather-aware-truck-routing-sandy.vercel.app",
+    ],
+)
 CORS_ALLOW_CREDENTIALS = False
 
 # Cache Configuration
