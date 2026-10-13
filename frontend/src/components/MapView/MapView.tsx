@@ -478,17 +478,17 @@ export const MapView: FC<MapViewProps> = ({
           type: 'circle',
           source: HEATMAP_SOURCE,
           paint: {
-            'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 22, 6, 36, 8, 54, 10, 75],
+            'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 12, 6, 18, 8, 28, 10, 42],
             'circle-color': ['get', 'color'],
             'circle-opacity': [
               'case',
-              ['==', ['get', 'level'], 'Low'], 0.06,
-              ['==', ['get', 'level'], 'Moderate'], 0.70,
+              ['==', ['get', 'level'], 'Low'], 0.0,
+              ['==', ['get', 'level'], 'Moderate'], 0.75,
               ['==', ['get', 'level'], 'High'], 0.85,
               ['==', ['get', 'level'], 'Severe'], 0.95,
               1.0,
             ],
-            'circle-blur': 0.75,
+            'circle-blur': 0.35,
           },
         },
         firstRouteLayer
