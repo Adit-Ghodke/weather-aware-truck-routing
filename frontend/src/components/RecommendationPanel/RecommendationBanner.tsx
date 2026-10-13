@@ -26,13 +26,13 @@ export const RecommendationBanner: FC<RecommendationBannerProps> = ({ recommenda
         {isAllSevere ? (
           <AlertTriangle size={22} color="#EF4444" />
         ) : (
-          <ShieldCheck size={22} color="#10B981" />
+          <ShieldCheck size={22} color="#059669" />
         )}
         <Typography
           variant="subtitle1"
           sx={{
             fontWeight: 700,
-            color: isAllSevere ? '#EF4444' : '#10B981',
+            color: isAllSevere ? '#EF4444' : '#059669',
             lineHeight: 1.2,
           }}
         >

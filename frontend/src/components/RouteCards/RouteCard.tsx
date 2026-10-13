@@ -69,13 +69,13 @@ export const RouteCard: FC<RouteCardProps> = ({
 
         {isRecommended && (
           <Chip
-            icon={<CheckCircle2 size={15} color="#10B981" />}
+            icon={<CheckCircle2 size={15} color="#059669" />}
             label="RECOMMENDED"
             size="small"
             sx={{
-              bgcolor: 'rgba(16, 185, 129, 0.2)',
-              color: '#34D399',
-              border: '1.5px solid rgba(16, 185, 129, 0.5)',
+              bgcolor: 'rgba(5, 150, 105, 0.2)',
+              color: '#10B981',
+              border: '1.5px solid rgba(5, 150, 105, 0.6)',
               fontWeight: 800,
               fontSize: '0.8rem',
               height: 26,

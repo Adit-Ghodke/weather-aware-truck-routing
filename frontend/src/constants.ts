@@ -5,7 +5,7 @@
 import type { RiskLevel } from './types/api';
 
 export const RISK_COLORS: Record<RiskLevel, string> = {
-  Low: '#10B981',       // Emerald Green
+  Low: '#059669',       // Deep Emerald Green (richer, slightly darker for contrast)
   Moderate: '#EAB308',  // Yellow
   High: '#F59E0B',      // Amber
   Severe: '#EF4444',    // Ruby Red
@@ -13,7 +13,7 @@ export const RISK_COLORS: Record<RiskLevel, string> = {
 };
 
 export const RISK_BG_COLORS: Record<RiskLevel, string> = {
-  Low: 'rgba(16, 185, 129, 0.15)',
+  Low: 'rgba(5, 150, 105, 0.20)',
   Moderate: 'rgba(234, 179, 8, 0.15)',
   High: 'rgba(245, 158, 11, 0.15)',
   Severe: 'rgba(239, 68, 68, 0.15)',

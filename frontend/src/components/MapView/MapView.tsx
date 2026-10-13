@@ -255,7 +255,7 @@ export const MapView: FC<MapViewProps> = ({
       const firstCoord = coords[0];
       const lastCoord = coords[coords.length - 1];
 
-      const originMarker = new mapboxgl.Marker({ color: '#10B981' })
+      const originMarker = new mapboxgl.Marker({ color: '#059669' })
         .setLngLat([firstCoord[0], firstCoord[1]])
         .addTo(map);
       markersRef.current.push(originMarker);
@@ -482,7 +482,7 @@ export const MapView: FC<MapViewProps> = ({
             'circle-color': ['get', 'color'],
             'circle-opacity': [
               'case',
-              ['==', ['get', 'level'], 'Low'], 0.0,
+              ['==', ['get', 'level'], 'Low'], 0.12,
               ['==', ['get', 'level'], 'Moderate'], 0.75,
               ['==', ['get', 'level'], 'High'], 0.85,
               ['==', ['get', 'level'], 'Severe'], 0.95,
