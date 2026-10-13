@@ -340,6 +340,8 @@ class AnalyzeTripView(APIView):
                 "generated_at": timezone.now().isoformat(),
                 "warnings": warnings,
             },
+        }
+
         # 7. Non-blocking persistence to database and cache (§6)
         try:
             self.cache.set(f"trip_analysis:{analysis_id}", payload, timeout=3600)
