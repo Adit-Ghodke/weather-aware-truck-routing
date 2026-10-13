@@ -340,9 +340,12 @@ class AnalyzeTripView(APIView):
                 "generated_at": timezone.now().isoformat(),
                 "warnings": warnings,
             },
-        }
+        # 7. Non-blocking persistence to database and cache (§6)
+        try:
+            self.cache.set(f"trip_analysis:{analysis_id}", payload, timeout=3600)
+        except Exception:
+            pass
 
-        # 7. Non-blocking persistence to database (§6)
         try:
             TripAnalysis.objects.create(
                 id=analysis_id,
@@ -385,7 +388,17 @@ class TripDetailView(APIView):
                 },
                 status=status.HTTP_404_NOT_FOUND,
             )
-
+        except Exception as db_err:
+            return Response(
+                {
+                    "error": {
+                        "code": "DATABASE_ERROR",
+                        "message": f"Could not retrieve trip analysis: {db_err}",
+                        "details": {},
+                    }
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
         return Response(trip.result_json, status=status.HTTP_200_OK)
 
 
@@ -422,36 +435,76 @@ class HeatmapView(APIView):
         all_coords: list[list[float]] = []
         departure_utc = None
 
+        def _to_utc_dt(val):
+            if val is None:
+                return None
+            if isinstance(val, str):
+                try:
+                    dt = datetime.fromisoformat(val)
+                except ValueError:
+                    return None
+            else:
+                dt = val
+            if getattr(dt, "tzinfo", None) is None:
+                return dt.replace(tzinfo=UTC)
+            return dt.astimezone(UTC)
+
+        # 1. If trip_id provided, check cache first, then database
         if trip_id:
+            cached_trip = None
             try:
-                trip = TripAnalysis.objects.get(id=trip_id)
-            except TripAnalysis.DoesNotExist:
-                return Response(
-                    {
-                        "error": {
-                            "code": "TRIP_NOT_FOUND",
-                            "message": f"Trip analysis with ID '{trip_id}' not found.",
-                            "details": {},
-                        }
-                    },
-                    status=status.HTTP_404_NOT_FOUND,
-                )
-            departure_utc = trip.departure_datetime_utc
-            result_json = trip.result_json or {}
-            routes = result_json.get("routes", [])
-            for r in routes:
-                geom = r.get("geometry", {})
-                all_coords.extend(geom.get("coordinates", []))
-        else:
-            departure_dt = data["departure_datetime"]
-            departure_utc = departure_dt.astimezone(UTC)
+                cached_trip = self.cache.get(f"trip_analysis:{trip_id}")
+            except Exception:
+                pass
+
+            if cached_trip and isinstance(cached_trip, dict):
+                routes = cached_trip.get("routes", [])
+                for r in routes:
+                    geom = r.get("geometry", {})
+                    all_coords.extend(geom.get("coordinates", []))
+                    if not departure_utc and r.get("departure_datetime_utc"):
+                        departure_utc = _to_utc_dt(r["departure_datetime_utc"])
+
+            if not all_coords:
+                try:
+                    trip = TripAnalysis.objects.get(id=trip_id)
+                    departure_utc = _to_utc_dt(trip.departure_datetime_utc)
+                    result_json = trip.result_json or {}
+                    routes = result_json.get("routes", [])
+                    for r in routes:
+                        geom = r.get("geometry", {})
+                        all_coords.extend(geom.get("coordinates", []))
+                except TripAnalysis.DoesNotExist:
+                    logger.info(f"TripAnalysis {trip_id} not found in DB.")
+                except Exception as db_err:
+                    logger.warning(f"Database error looking up TripAnalysis {trip_id}: {db_err}")
+
+        # 2. Fallback to corridor_geometry & departure_datetime if passed in request
+        if not all_coords and data.get("corridor_geometry"):
             corridor_geom = data.get("corridor_geometry", {})
             routes = corridor_geom.get("routes", [])
             for r in routes:
                 coords = r.get("coordinates", [])
                 all_coords.extend(coords)
 
+        if not departure_utc and data.get("departure_datetime"):
+            departure_utc = _to_utc_dt(data["departure_datetime"])
+
+        if not departure_utc:
+            departure_utc = timezone.now().astimezone(UTC)
+
         if not all_coords:
+            if trip_id and not data.get("corridor_geometry"):
+                return Response(
+                    {
+                        "error": {
+                            "code": "TRIP_NOT_FOUND",
+                            "message": f"Trip analysis with ID '{trip_id}' not found. Please provide corridor_geometry.",
+                            "details": {},
+                        }
+                    },
+                    status=status.HTTP_404_NOT_FOUND,
+                )
             return Response(
                 {
                     "error": {

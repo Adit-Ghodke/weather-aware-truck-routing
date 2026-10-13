@@ -48,6 +48,13 @@ export default function App() {
           {
             trip_id: data.id,
             load_weight_lb: payload.load_weight_lb,
+            departure_datetime: payload.departure_datetime,
+            corridor_geometry: {
+              routes: data.routes.map((r) => ({
+                type: r.geometry.type,
+                coordinates: r.geometry.coordinates,
+              })),
+            },
           },
           {
             onSuccess: (hm) => {
@@ -66,6 +73,13 @@ export default function App() {
           {
             trip_id: analysisResult.id,
             load_weight_lb: lastSubmittedPayload.load_weight_lb,
+            departure_datetime: lastSubmittedPayload.departure_datetime,
+            corridor_geometry: {
+              routes: analysisResult.routes.map((r) => ({
+                type: r.geometry.type,
+                coordinates: r.geometry.coordinates,
+              })),
+            },
           },
           {
             onSuccess: (hm) => {
