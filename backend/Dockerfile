@@ -24,5 +24,5 @@ COPY . /app/
 ENV PORT=8000
 EXPOSE 8000
 
-# Default command uses gunicorn for production
-CMD exec gunicorn config.wsgi:application --bind 0.0.0.0:${PORT} --workers 2 --threads 4 --timeout 60
+# Run migrations on container startup, then start gunicorn
+CMD ["sh", "-c", "python manage.py migrate --noinput && exec gunicorn config.wsgi:application --bind 0.0.0.0:${PORT} --workers 2 --threads 4 --timeout 60"]
