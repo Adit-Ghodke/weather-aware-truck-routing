@@ -148,9 +148,14 @@ CORS_ALLOW_CREDENTIALS = False
 
 # Cache Configuration
 # SafeHaul custom ResilientCache wrapper fallback:
-# If REDIS_URL is provided, configure redis backend; otherwise fall back to LocMemCache.
+# In test environments or when REDIS_URL is not provided, use LocMemCache.
+# In live runtime with REDIS_URL, use django_redis so ResilientCache can manage Redis failovers.
+import sys
+
+IS_TESTING = "pytest" in sys.modules or any("pytest" in arg or "test" in arg for arg in sys.argv)
 REDIS_URL = env("REDIS_URL")
-if REDIS_URL:
+
+if REDIS_URL and not IS_TESTING:
     CACHES = {
         "default": {
             "BACKEND": "django_redis.cache.RedisCache",
@@ -159,7 +164,6 @@ if REDIS_URL:
                 "CLIENT_CLASS": "django_redis.client.DefaultClient",
                 "SOCKET_CONNECT_TIMEOUT": 5,
                 "SOCKET_TIMEOUT": 5,
-                "IGNORE_EXCEPTIONS": True,  # Prevent django-redis from crashing on failures
             },
         },
         "locmem": {

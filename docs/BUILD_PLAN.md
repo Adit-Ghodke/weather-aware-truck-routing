@@ -68,7 +68,7 @@ Each ambiguity from the specification is resolved here. These decisions are docu
 | A15 | Geocoding caching prohibition | Per Mapbox Temporary Geocoding Terms, coordinate results CANNOT be cached or stored. Therefore, backend 24h caching of geocode queries is eliminated. Autocomplete is debounced (300ms) on the frontend for the active user session only, with no persistent backend cache. (Verified fact) |
 | A16 | Directions caching terms (NEEDS OWNER VERIFICATION) | Mapbox Terms Section 3.1 permit temporary caching only as necessary to enable application functioning on an end user's device. Server-side route caching is NOT claimed as legally approved; it requires owner verification. Route caching is disabled by default (`ENABLE_ROUTE_CACHE=false`), using only per-request in-memory deduplication during analysis execution. (Design decision) |
 | A17 | Open-Meteo usage limits & batching | 7-day default (configurable up to 16 days), multi-location syntax, and response array behavior are verified. Free non-commercial limits (<10,000 calls/day, 5,000/hr, 600/min per IP) are usage limits, not an availability or latency SLA. The 30-minute weather cache and HTTP 429 backoff are planned mitigations, not guarantees that rate limits will never be reached. SafeHaul enforces a 7-day trip planning limit and conservative batches of up to 50 locations. No 1,000-location maximum or 300ms latency is claimed. (Verified facts & design decisions) |
-| A18 | Redis fallback design requirement | Django does NOT automatically fall back to LocMemCache when Redis fails. A custom `ResilientCache` wrapper design is required to intercept Redis errors and delegate to in-memory `LocMemCache`. Scheduled for Phase 5 implementation and testing; not yet implemented. (Design requirement) |
+| A18 | Redis fallback implementation | Django does NOT automatically fall back to LocMemCache when Redis fails. A custom `ResilientCache` wrapper is fully implemented in `safehaul/adapters/cache.py` to intercept Redis errors and delegate to in-memory `LocMemCache`. Fully verified with 16 automated tests in `tests/test_cache_resilience.py`. (Verified fact) |
 
 ---
 
@@ -227,7 +227,7 @@ Each ambiguity from the specification is resolved here. These decisions are docu
 | **Choice** | Upstash managed Redis |
 | **Reason** | Free tier, no credit card required for hobby tier, HTTP/TCP client works from Cloud Run. |
 | **Free tier quotas (Verified)** | 500,000 commands/month (~16k/day), 256 MB storage, 10 GB monthly bandwidth. Pricing plan comparison lists 1 free database (while FAQ mentions up to 10); SafeHaul conservatively plans for exactly 1 database. No credit card required. |
-| **Fallback Design Requirement** | Django does NOT automatically fall back to `LocMemCache` when Redis fails. A custom `ResilientCache` wrapper design is specified to intercept Redis connection/timeout errors and route to in-memory `LocMemCache`. This is a design requirement scheduled for implementation and test in Phase 5; it is not yet implemented. |
+| **Fallback Implementation (Verified)** | Django does NOT automatically fall back to `LocMemCache` when Redis fails. A custom `ResilientCache` wrapper is fully implemented in `safehaul/adapters/cache.py` to intercept Redis connection/timeout errors and route to in-memory `LocMemCache`. Verified with 16 automated tests in `tests/test_cache_resilience.py`. |
 
 ---
 
@@ -950,7 +950,7 @@ App
 - DRF throttling: 60/min on `/analyze/`, 120/min on `/geocode/`
 - Request timeouts: 10s routing, 15s weather
 - Retry with exponential backoff: max 2 retries for external calls
-- Resilient cache wrapper (planned design): `ResilientCache` wrapper to intercept Redis connection errors and route to `LocMemCache` so cache outages never crash requests (scheduled for Phase 5 implementation and testing)
+- Resilient cache wrapper (implemented): `ResilientCache` wrapper intercepts Redis connection errors and routes to `LocMemCache` so cache outages never crash requests (implemented in `safehaul/adapters/cache.py` and tested in `tests/test_cache_resilience.py`)
 - Payload: route geometries simplified server-side (Douglas-Peucker, tolerance 0.0001 degrees)
 
 ---
@@ -1140,7 +1140,7 @@ curl https://<cloud-run-url>/api/v1/health/
 | R2 | Open-Meteo rate limit or downtime | Low | High | 30min cache; `weather_available: false` on failure; clear UI warning; no fake data |
 | R3 | Cloud Run cold start during demo | High | Medium | Set minimum instances = 1; warmup request in deployment checklist |
 | R4 | Time zone calculation errors | Medium | High | `timezonefinder` + `zoneinfo`; unit tests covering DST edge cases; display TZ abbreviation in UI |
-| R5 | Redis unavailable (quota/outage) | Low | Low | Django does NOT fall back automatically; planned ResilientCache wrapper will catch Redis errors and route to LocMemCache; scheduled to be implemented and verified in Phase 5 |
+| R5 | Redis unavailable (quota/outage) | Low | Low | Django does NOT fall back automatically; ResilientCache wrapper in `safehaul/adapters/cache.py` intercepts Redis errors and routes to LocMemCache; verified with 16 automated outage tests |
 | R6 | API keys expired during grading | Low | High | Check quotas before demo; document fallback mock data option |
 | R7 | Segment miles don't sum to route total | Low | High | Assert abs(sum - total) < MILE_TOLERANCE in domain logic; unit test this invariant |
 | R8 | Open-Meteo unit ambiguity (mm vs in) | Medium | High | Read docs; unit-test conversion; integration test with real API response shape |

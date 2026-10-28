@@ -98,12 +98,13 @@ class ResilientCache(BaseCache):
         )
 
     def get(self, key: str, default: Any = None, version: Any = None) -> Any:
-        try:
-            val = self.primary_cache.get(key, default=None, version=version)
-            if val is not None:
-                return val
-        except REDIS_FALLBACK_EXCEPTIONS as err:
-            self._handle_failure("get", err)
+        if not self._fallback_active:
+            try:
+                val = self.primary_cache.get(key, default=None, version=version)
+                if val is not None:
+                    return val
+            except REDIS_FALLBACK_EXCEPTIONS as err:
+                self._handle_failure("get", err)
 
         # Fallback cache lookup
         return self.fallback_cache.get(key, default=default, version=version)
@@ -116,11 +117,12 @@ class ResilientCache(BaseCache):
         version: Any = None,
     ) -> None:
         primary_ok = False
-        try:
-            self.primary_cache.set(key, value, timeout=timeout, version=version)
-            primary_ok = True
-        except REDIS_FALLBACK_EXCEPTIONS as err:
-            self._handle_failure("set", err)
+        if not self._fallback_active:
+            try:
+                self.primary_cache.set(key, value, timeout=timeout, version=version)
+                primary_ok = True
+            except REDIS_FALLBACK_EXCEPTIONS as err:
+                self._handle_failure("set", err)
 
         # Always write to fallback cache if primary failed or fallback is active
         if not primary_ok or self._fallback_active:
@@ -133,33 +135,41 @@ class ResilientCache(BaseCache):
         timeout: Any = DEFAULT_TIMEOUT,
         version: Any = None,
     ) -> bool:
-        try:
-            return self.primary_cache.add(key, value, timeout=timeout, version=version)
-        except REDIS_FALLBACK_EXCEPTIONS as err:
-            self._handle_failure("add", err)
-            return self.fallback_cache.add(key, value, timeout=timeout, version=version)
+        res = None
+        if not self._fallback_active:
+            try:
+                res = self.primary_cache.add(key, value, timeout=timeout, version=version)
+            except REDIS_FALLBACK_EXCEPTIONS as err:
+                self._handle_failure("add", err)
+
+        if res is not None:
+            return bool(res)
+
+        return self.fallback_cache.add(key, value, timeout=timeout, version=version)
 
     def delete(self, key: str, version: Any = None) -> bool:
         deleted = False
-        try:
-            deleted = self.primary_cache.delete(key, version=version)
-        except REDIS_FALLBACK_EXCEPTIONS as err:
-            self._handle_failure("delete", err)
+        if not self._fallback_active:
+            try:
+                deleted = bool(self.primary_cache.delete(key, version=version))
+            except REDIS_FALLBACK_EXCEPTIONS as err:
+                self._handle_failure("delete", err)
 
-        fallback_deleted = self.fallback_cache.delete(key, version=version)
+        fallback_deleted = bool(self.fallback_cache.delete(key, version=version))
         return deleted or fallback_deleted
 
     def get_many(self, keys: list[str], version: Any = None) -> dict[str, Any]:
         results: dict[str, Any] = {}
         missing_keys = set(keys)
 
-        try:
-            primary_res = self.primary_cache.get_many(keys, version=version)
-            if primary_res:
-                results.update(primary_res)
-                missing_keys -= set(primary_res.keys())
-        except REDIS_FALLBACK_EXCEPTIONS as err:
-            self._handle_failure("get_many", err)
+        if not self._fallback_active:
+            try:
+                primary_res = self.primary_cache.get_many(keys, version=version)
+                if primary_res:
+                    results.update(primary_res)
+                    missing_keys -= set(primary_res.keys())
+            except REDIS_FALLBACK_EXCEPTIONS as err:
+                self._handle_failure("get_many", err)
 
         if missing_keys:
             fallback_res = self.fallback_cache.get_many(list(missing_keys), version=version)
@@ -175,10 +185,11 @@ class ResilientCache(BaseCache):
         version: Any = None,
     ) -> list[Any]:
         failed_keys: list[Any] = []
-        try:
-            failed_keys = self.primary_cache.set_many(data, timeout=timeout, version=version) or []
-        except REDIS_FALLBACK_EXCEPTIONS as err:
-            self._handle_failure("set_many", err)
+        if not self._fallback_active:
+            try:
+                failed_keys = self.primary_cache.set_many(data, timeout=timeout, version=version) or []
+            except REDIS_FALLBACK_EXCEPTIONS as err:
+                self._handle_failure("set_many", err)
 
         if failed_keys or self._fallback_active:
             self.fallback_cache.set_many(data, timeout=timeout, version=version)
@@ -186,27 +197,30 @@ class ResilientCache(BaseCache):
         return failed_keys
 
     def delete_many(self, keys: list[str], version: Any = None) -> None:
-        try:
-            self.primary_cache.delete_many(keys, version=version)
-        except REDIS_FALLBACK_EXCEPTIONS as err:
-            self._handle_failure("delete_many", err)
+        if not self._fallback_active:
+            try:
+                self.primary_cache.delete_many(keys, version=version)
+            except REDIS_FALLBACK_EXCEPTIONS as err:
+                self._handle_failure("delete_many", err)
 
         self.fallback_cache.delete_many(keys, version=version)
 
     def has_key(self, key: str, version: Any = None) -> bool:
-        try:
-            if self.primary_cache.has_key(key, version=version):
-                return True
-        except REDIS_FALLBACK_EXCEPTIONS as err:
-            self._handle_failure("has_key", err)
+        if not self._fallback_active:
+            try:
+                if self.primary_cache.has_key(key, version=version):
+                    return True
+            except REDIS_FALLBACK_EXCEPTIONS as err:
+                self._handle_failure("has_key", err)
 
         return self.fallback_cache.has_key(key, version=version)
 
     def clear(self) -> None:
-        try:
-            self.primary_cache.clear()
-        except REDIS_FALLBACK_EXCEPTIONS as err:
-            self._handle_failure("clear", err)
+        if not self._fallback_active:
+            try:
+                self.primary_cache.clear()
+            except REDIS_FALLBACK_EXCEPTIONS as err:
+                self._handle_failure("clear", err)
 
         self.fallback_cache.clear()
 
